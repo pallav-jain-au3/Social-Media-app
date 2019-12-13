@@ -21,10 +21,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-     - name: select node 8 
+     - name: select node 10 
        uses: actions/setup-node@v1
        with:
-        node-version: '8.x'
+        node-version: '10.x'
      - name: Checkout Repo
        uses: actions/checkout@master
      - name: Clear current dependencies
