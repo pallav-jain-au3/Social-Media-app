@@ -1,0 +1,25 @@
+{
+  "name": "social-media-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "prettier": "^1.19.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "postinstall": "cd functions && npm install",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-prod": "echo \"Error: no build step specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sharadJay/Social-Media-App.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sharadJay/Social-Media-App/issues"
+  },
+  "homepage": "https://github.com/sharadJay/Social-Media-App#readme"
+}
