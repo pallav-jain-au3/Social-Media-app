@@ -21,9 +21,11 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
-        with:
+     - name: Checkout Repo
+       uses: actions/checkout@master
+     - name: Deploy to Firebase
+       uses: w9jds/firebase-action@master
+       with:
           args: deploy
-        env:
+       env:
           FIREBASE_TOKEN: 1//0gXSVoXeqmlPCCgYIARAAGBASNgF-L9IrkYwwix2C32MXv5E6SIFju1jmMZVQG7JbSGtpzRlTUGuNOSFaDl6WlrWXvB9mvKbj1g
