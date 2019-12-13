@@ -12,6 +12,9 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "build-prod": "echo \"Error: no build step specified\" && exit 0"
   },
+  "engines": {
+    "node": "8"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sharadJay/Social-Media-App.git"
