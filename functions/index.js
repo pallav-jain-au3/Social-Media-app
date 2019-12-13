@@ -2,11 +2,21 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const express = require('express');
 const app= express();
-admin.initializeApp();
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
 
+admin.initializeApp();
+const firebase = require('firebase')
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAqYd1ngTX3uNATqsaGRCqfuNd8dArelnQ",
+    authDomain: "social-media-7f318.firebaseapp.com",
+    databaseURL: "https://social-media-7f318.firebaseio.com",
+    projectId: "social-media-7f318",
+    storageBucket: "social-media-7f318.appspot.com",
+    messagingSenderId: "906727716659",
+    appId: "1:906727716659:web:59f0c7dbd11cceb82db046",
+    measurementId: "G-B4LWRMWY6Y"
+  };
+firebase.initializeApp(firebaseConfig)
 
 app.get('/screams', (req, res)=>{
     admin
@@ -17,7 +27,14 @@ app.get('/screams', (req, res)=>{
     .then(data => {
       let screams = [];
       data.forEach(doc => {
-        screams.push(doc.data());
+        screams.push({
+            sreamId :doc.id,
+            body : doc.data().body,
+            userHandle: doc.data().userHandle,
+            createdAt : doc.data().createdAt,
+            likeCount :doc.data().likeCount,
+            dislikeCount : doc.data().dislikeCount
+        });
       });
       return res.json(screams);
     })
@@ -26,7 +43,6 @@ app.get('/screams', (req, res)=>{
       console.log(err);
     });
 })
-
 
 app.post('/screams',(req, res) => {
   if (req.method !== "POST") {
@@ -47,5 +63,24 @@ app.post('/screams',(req, res) => {
       console.log(err);
     });
 });
+
+app.post('/signup', (req, res)=>{
+
+    console.log(req.body)
+    let newUser = {
+        email : req.body.email,
+        password : req.body.password,
+        confirmPassword : req.body.confirmPassword,
+        handle: user.body.handle
+
+    }
+
+    firesbase.auth().createUserWithEmailAndPassword(newUser.email, newUser.password)
+    .then(data => res.status(201).json({messge: "user Created Succesfully"}))
+    .catch(err =>{
+        console.log(err)
+        return res.status(500).json({err:err.code})
+    })
+})
 
 exports.api = functions.https.onRequest(app)
