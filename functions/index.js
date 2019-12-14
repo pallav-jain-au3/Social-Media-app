@@ -1,3 +1,4 @@
+/* eslint-disable promise/no-nesting */
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const express = require("express");
@@ -69,21 +70,39 @@ app.post("/screams", (req, res) => {
 });
 
 app.post("/signup", (req, res) => {
-  console.log(req.body);
   let newUser = {
     email: req.body.email,
     password: req.body.password,
     confirmPassword: req.body.confirmPassword,
-    handle: user.body.handle
+    handle: req.body.handle
   };
 
-  firesbase
-    .auth()
-    .createUserWithEmailAndPassword(newUser.email, newUser.password)
-    .then(data => res.status(201).json({ messge: "user Created Succesfully" }))
-    .catch(err => {
-      console.log(err);
-      return res.status(500).json({ err: err.code });
+  // eslint-disable-next-line promise/catch-or-return
+  admin
+    .firestore()
+    .doc(`/users/${newUser.handle}`)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        return res.status(400).json({ handle: "This handle is already taken" });
+      } else {
+        return firebase
+          .auth()
+          .createUserWithEmailAndPassword(newUser.email, newUser.password)
+          .then(data => {
+            return data.user.getIdToken();
+          })
+          .then(token => {
+            return res.status(201).json({ token });
+          })
+          .catch(err => {
+            if (err.code === "auth/email-already-in-use") {
+              return res.status(400).json({ email: "Email laready exists" });
+            } else {
+              return res.status(500).json({ err: err.code });
+            }
+          });
+      }
     });
 });
 
