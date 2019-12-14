@@ -69,6 +69,13 @@ app.post("/screams", (req, res) => {
     });
 });
 
+const isEmpty = (string) => string.trim() === '';
+const isValidEmail = (email) => {
+    const emailRegEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    if(email.match(emailRegEx)) return true
+    else return false;
+}
+
 app.post("/signup", (req, res) => {
   let newUser = {
     email: req.body.email,
@@ -76,6 +83,34 @@ app.post("/signup", (req, res) => {
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle
   };
+
+  let error = {};
+  if (isEmpty(newUser.email)){
+      error.email = "Must not be empty"
+  }
+  else if(isValidEmail(newUser.email)){
+      error.email = "Email must be a valid string"
+  }
+  if (isEmpty(newUser.handle)){
+    error.handle = "Must not be empty"
+ }
+
+
+  if (isEmpty(newUser.password)){
+      error.password = "Must not be empty"
+  }
+
+  if (newUser.password !== newUser.confirmPassword){
+      error.confirmPassword = "Password must match"
+  }
+
+  if (Object.keys(error).length > 0){
+      return res.status(400).json(error)
+  }
+  
+
+
+  let token, userId;
 
   // eslint-disable-next-line promise/catch-or-return
   admin
@@ -90,10 +125,22 @@ app.post("/signup", (req, res) => {
           .auth()
           .createUserWithEmailAndPassword(newUser.email, newUser.password)
           .then(data => {
+              userId = data.user.uid
             return data.user.getIdToken();
           })
-          .then(token => {
-            return res.status(201).json({ token });
+          .then(idToken => {
+              token = idToken;
+              const userCredentials  = {
+                  email:newUser.email,
+                  handle :newUser.handle,
+                  createdAt : new Date().toISOString(),
+                  userId
+                }
+            return admin.firestore().doc(`/users/${newUser.handle}`).set(userCredentials)    
+           
+          })
+          .then(()=> {
+                return res.status(201).json({ token });
           })
           .catch(err => {
             if (err.code === "auth/email-already-in-use") {
