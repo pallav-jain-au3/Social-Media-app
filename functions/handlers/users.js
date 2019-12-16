@@ -1,10 +1,9 @@
-const { db,admin } = require("../util/admin");
+const { db, admin } = require("../util/admin");
 const firebase = require("firebase");
 const config = require("../util/config");
 const { validateSignup, validateLogin } = require("../util/validators");
 
 firebase.initializeApp(config);
-console.log(config)
 
 exports.signup = (req, res) => {
   let newUser = {
@@ -19,7 +18,7 @@ exports.signup = (req, res) => {
   }
 
   let token, userId;
-  let noImg = 'no-face-img.webp';
+  let noImg = "no-face-img.webp";
   // eslint-disable-next-line promise/catch-or-return
   db.doc(`/users/${newUser.handle}`)
     .get()
@@ -41,7 +40,7 @@ exports.signup = (req, res) => {
               email: newUser.email,
               handle: newUser.handle,
               createdAt: new Date().toISOString(),
-              imgUrl:`https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
+              imgUrl: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
               userId
             };
             return admin
@@ -77,9 +76,8 @@ exports.login = (req, res) => {
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then(data => {
-        console.log(data)
-        
-        return data.user.getIdToken()})
+      return data.user.getIdToken();
+    })
     .then(token => {
       return res.json({ token });
     })
@@ -94,43 +92,48 @@ exports.login = (req, res) => {
     });
 };
 
-exports.uploadImage = (req, res) =>{
-    const BusBoy = require('busboy');
-    const path = require('path')
-    const os = require('os')
-    const fs = require('fs')
-    let imgFileName;
-    let imgToBeUploaded = {}
+exports.uploadImage = (req, res) => {
+  const BusBoy = require("busboy");
+  const path = require("path");
+  const os = require("os");
+  const fs = require("fs");
+  let imgFileName;
+  let imgToBeUploaded = {};
 
-    const busboy = new BusBoy({headers:req.headers})
-    busboy.on('file',(fieldname, file, filename, encoding,mimetype)=>{
-        const imgExtension = fieldname.split('.')[filename.split('.').length - 1] ;
-         imgFileName = `${Math.round(Math.random * 1000000)}${imgExtension}`
-        const filePath = path.join(os.tmpdir(), imgFileName)
-        imgToBeUploaded = {filePath, mimetype}
-        console.log(imgToBeUploaded)
-        file.pipe(fs.createWriteStream(filePath))
-    });
-    busboy('finish', () =>{
-        // eslint-disable-next-line promise/catch-or-return
-        admin.storage().bucket().upload(imgToBeUploaded.filePath,{
-            resumable:false,
-            metadata:{
-                contentType:imgToBeUploaded.mimetype
+  const busboy = new BusBoy({ headers: req.headers });
+  busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+    const imgExtension = filename.split(".")[filename.split(".").length - 1];
+    imgFileName = `${Math.round(Math.random() * 1000000)}.${imgExtension}`;
+    const filePath = path.join(os.tmpdir(), imgFileName);
+    imgToBeUploaded = { filePath, mimetype };
+    file.pipe(fs.createWriteStream(filePath));
+  });
+  busboy.on("finish", () => {
+    return (
+      admin
+        .storage()
+        .bucket()
+        .upload(imgToBeUploaded.filePath, {
+          resumable: false,
+          metadata: {
+            metadata: {
+              contentType: imgToBeUploaded.mimetype
             }
+          }
         })
         // eslint-disable-next-line promise/always-return
-        .then(()=>{
-            //https://firebasestorage.googleapis.com/v0/b/social-media-7f318.appspot.com/o/no-face-img.webp?alt=media
-            const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
-            return db.doc(`/users/${req.user.handle}`).update({imgUrl})
+        .then(() => {
+          const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
+          return db.doc(`/users/${req.user.handle}`).update({ imgUrl });
         })
-        .then(()=>{
-           return  res.json({messgae:'image uploaded succeffully'})
+        .then(() => {
+          return res.json({ messgae: "image uploaded succeffully" });
         })
-        .catch(err=>{
-            console.log(err)
-            return res.status(500).json({err:err.code})
+        .catch(err => {
+          console.log(err);
+          return res.status(500).json({ err: err.code });
         })
-    })
-}
+    );
+  });
+  busboy.end(req.rawBody);
+};
