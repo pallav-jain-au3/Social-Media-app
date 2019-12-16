@@ -4,7 +4,6 @@ const config = require("../util/config");
 const { validateSignup, validateLogin } = require("../util/validators");
 
 firebase.initializeApp(config);
-console.log(config);
 
 exports.signup = (req, res) => {
   let newUser = {
@@ -77,8 +76,6 @@ exports.login = (req, res) => {
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then(data => {
-      console.log(data);
-
       return data.user.getIdToken();
     })
     .then(token => {
@@ -107,10 +104,8 @@ exports.uploadImage = (req, res) => {
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
     const imgExtension = filename.split(".")[filename.split(".").length - 1];
     imgFileName = `${Math.round(Math.random() * 1000000)}.${imgExtension}`;
-    console.log("imgname", imgFileName);
     const filePath = path.join(os.tmpdir(), imgFileName);
     imgToBeUploaded = { filePath, mimetype };
-    console.log("imagetobeuploaded", imgToBeUploaded);
     file.pipe(fs.createWriteStream(filePath));
   });
   busboy.on("finish", () => {
@@ -128,7 +123,6 @@ exports.uploadImage = (req, res) => {
         })
         // eslint-disable-next-line promise/always-return
         .then(() => {
-          console.log("jwsqnjknskqnk");
           const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
           return db.doc(`/users/${req.user.handle}`).update({ imgUrl });
         })
