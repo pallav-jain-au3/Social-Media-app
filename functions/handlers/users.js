@@ -105,35 +105,41 @@ exports.uploadImage = (req, res) => {
 
   const busboy = new BusBoy({ headers: req.headers });
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
-    const imgExtension = fieldname.split(".")[filename.split(".").length - 1];
-    imgFileName = `${Math.round(Math.random * 1000000)}${imgExtension}`;
+    const imgExtension = filename.split(".")[filename.split(".").length - 1];
+    imgFileName = `${Math.round(Math.random() * 1000000)}.${imgExtension}`;
+    console.log("imgname", imgFileName);
     const filePath = path.join(os.tmpdir(), imgFileName);
     imgToBeUploaded = { filePath, mimetype };
-    console.log(imgToBeUploaded);
+    console.log("imagetobeuploaded", imgToBeUploaded);
     file.pipe(fs.createWriteStream(filePath));
   });
-  busboy("finish", () => {
-    // eslint-disable-next-line promise/catch-or-return
-    admin
-      .storage()
-      .bucket()
-      .upload(imgToBeUploaded.filePath, {
-        resumable: false,
-        metadata: {
-          contentType: imgToBeUploaded.mimetype
-        }
-      })
-      // eslint-disable-next-line promise/always-return
-      .then(() => {
-        const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
-        return db.doc(`/users/${req.user.handle}`).update({ imgUrl });
-      })
-      .then(() => {
-        return res.json({ messgae: "image uploaded succeffully" });
-      })
-      .catch(err => {
-        console.log(err);
-        return res.status(500).json({ err: err.code });
-      });
+  busboy.on("finish", () => {
+    return (
+      admin
+        .storage()
+        .bucket()
+        .upload(imgToBeUploaded.filePath, {
+          resumable: false,
+          metadata: {
+            metadata: {
+              contentType: imgToBeUploaded.mimetype
+            }
+          }
+        })
+        // eslint-disable-next-line promise/always-return
+        .then(() => {
+          console.log("jwsqnjknskqnk");
+          const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
+          return db.doc(`/users/${req.user.handle}`).update({ imgUrl });
+        })
+        .then(() => {
+          return res.json({ messgae: "image uploaded succeffully" });
+        })
+        .catch(err => {
+          console.log(err);
+          return res.status(500).json({ err: err.code });
+        })
+    );
   });
+  busboy.end(req.rawBody);
 };
