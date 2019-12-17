@@ -5,7 +5,7 @@ const express = require("express");
 const app = express();
 
 const { getAllScreams, postOneScream } = require("./handlers/screams");
-const { signup, login, uploadImage } = require("./handlers/users");
+const { signup, login, uploadImage, addUserDetails } = require("./handlers/users");
 const FBAuth = require("./util/fbAuth");
 
 
@@ -17,7 +17,7 @@ app.post("/screams", FBAuth, postOneScream);
 app.post("/signup", signup);
 app.post("/login", login);
 app.post("/user/image", FBAuth,uploadImage);
-
+app.post("/user", FBAuth, addUserDetails)
 // eslint-disable-next-line consistent-return
 
 exports.api = functions.https.onRequest(app);
