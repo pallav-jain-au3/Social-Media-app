@@ -53,7 +53,8 @@ exports.getScream = (req, res) => {
       screamData.screamId = doc.id;
       return db
         .collection("comments")
-        .where("ddreamId", "==", req.params.screamId)
+        .orderBy('createdAt', 'desc')
+        .where("screamId", "==", req.params.screamId)
         .get();
     })
     .then(data => {
@@ -69,3 +70,7 @@ exports.getScream = (req, res) => {
       return res.status(500).json({ err: err.code });
     });
 };
+
+exports.commentOnScream = (req, res) =>{
+  
+}
