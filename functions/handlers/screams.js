@@ -1,4 +1,6 @@
-const { db } = require("../util/admin");
+const {
+  db
+} = require("../util/admin");
 
 exports.getAllScreams = (req, res) => {
   db.collection("screams")
@@ -19,7 +21,9 @@ exports.getAllScreams = (req, res) => {
       return res.json(screams);
     })
     .catch(err => {
-      res.status(400).json({ err: "something went wrong" });
+      res.status(400).json({
+        err: "something went wrong"
+      });
       console.log(err);
     });
 };
@@ -28,14 +32,24 @@ exports.postOneScream = (req, res) => {
   let newScream = {
     body: req.body.body,
     userHandle: req.user.handle,
+    userImage: req.user.imageUrl,
+    likeCount: 0,
+    commentCount: 0,
     createdAt: new Date().toISOString()
   };
-  console.log("newScream", newScream);
+  console.log(newScream)
   db.collection("screams")
     .add(newScream)
-    .then(doc => res.json(doc.id))
+    .then(doc => {
+
+      const resScream = newScream
+      resScream.id = doc.id
+      res.json(resScream)
+    })
     .catch(err => {
-      res.status(500).json({ err: "something went wrong" });
+      res.status(500).json({
+        err: "something went wrong"
+      });
       console.log(err);
     });
 };
@@ -43,7 +57,9 @@ exports.postOneScream = (req, res) => {
 exports.commentOnScream = (req, res) => {
   console.log(req.body);
   if (req.body.body.trim() == "") {
-    return res.status(400).json({ error: "Must not be empty" });
+    return res.status(400).json({
+      error: "Must not be empty"
+    });
   }
   let newComment = {
     body: req.body.body,
@@ -57,16 +73,73 @@ exports.commentOnScream = (req, res) => {
     .get()
     .then(doc => {
       if (!doc.exists) {
-        return res.status(404).json({ error: "Not found" });
+        return res.status(404).json({
+          error: "Not found"
+        });
       }
 
       return db.collection("comments").add(newComment);
     })
     .then(() => {
-      res.status(201).json({ message: "comment added successfully" });
+      res.status(201).json({
+        message: "comment added successfully"
+      });
     })
     .catch(err => {
       console.log(err);
-      res.status(500).json({ error: err.code });
+      res.status(500).json({
+        error: err.code
+      });
     });
 };
+
+
+exports.likeScream = (req, res) => {
+
+  const likeDocument = db.collection('likes').where('userHandle', '==', req.user.handle).where('screamId', '==', req.params.screamId).limit(1);
+  let screamDocument = db.doc(`/screams/${req.params.screamId}`)
+  let screamData;
+  screamDocument.get()
+    .then(doc => {
+      if (doc.exists) {
+        screamData = doc.data();
+        screamData.screamId = req.params.screamId;
+        return likeDocument.get()
+      } else {
+        return res.status(404).json({
+          error: "not found"
+        })
+      }
+    })
+    .then(data => {
+      if (data.empty) {
+        return db.collection('likes').add({
+            screamId: req.params.screamId,
+            userHandle: req.user.handle
+          })
+          .then(() => {
+            screamData.likeCount++;
+            return screamDocument.update({
+              likeCount: screamData.likeCount
+            })
+          })
+          .then(() => res.json(screamData))
+      } else {
+        res.status(400).json({
+          error: "Scream already liked"
+        })
+      }
+    })
+    .catch(err => {
+      console.log(err)
+      res.status(500).json({
+        error: "Something went wrong"
+      })
+    })
+
+
+}
+
+exports.unlikeScream = (req, res) => {
+  res.send("wait")
+}
