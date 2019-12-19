@@ -9,7 +9,7 @@ const {
   likeScream,
   unlikeScream
 } = require("./handlers/screams");
-const { signup, login, uploadImage } = require("./handlers/users");
+const { signup, login, uploadImage,addUserDetails,getAuthenticatedUser } = require("./handlers/users");
 const FBAuth = require("./util/fbAuth");
 
 

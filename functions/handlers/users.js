@@ -193,7 +193,7 @@ exports.getAuthenticatedUser = (req, res)=>{
   let userData = {};
   db.doc(`/users/${req.user.handle}`).get()
   .then(doc=>{
-    // eslint-disable-next-line promise/always-return
+    
     if(doc.exists){
       userData.credentials = doc.data();
       return db.collection('likes').where('userHandle', '==', req.user.handle).get()
