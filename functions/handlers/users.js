@@ -1,7 +1,4 @@
-const {
-  db,
-  admin
-} = require("../util/admin");
+const { db, admin } = require("../util/admin");
 const firebase = require("firebase");
 const config = require("../util/config");
 const {
@@ -19,10 +16,7 @@ exports.signup = (req, res) => {
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle
   };
-  const {
-    error,
-    valid
-  } = validateSignup(newUser);
+  const { error, valid } = validateSignup(newUser);
   if (!valid) {
     return res.status(400).json(error);
   }
@@ -86,10 +80,7 @@ exports.login = (req, res) => {
     password: req.body.password
   };
 
-  const {
-    error,
-    valid
-  } = validateLogin(user);
+  const { error, valid } = validateLogin(user);
   if (!valid) {
     return res.status(400).json(error);
   }
@@ -106,11 +97,9 @@ exports.login = (req, res) => {
     })
     .catch(err => {
       if (err.code === "auth/wrong-password") {
-        return res
-          .status(403)
-          .json({
-            error: "Wrong password . Please try again"
-          });
+        return res.status(403).json({
+          error: "Wrong password . Please try again"
+        });
       } else {
         return res.status(500).json({
           error: err.code
@@ -143,34 +132,33 @@ exports.uploadImage = (req, res) => {
   busboy.on("finish", () => {
     return (
       admin
-      .storage()
-      .bucket()
-      .upload(imgToBeUploaded.filePath, {
-        resumable: false,
-        metadata: {
+        .storage()
+        .bucket()
+        .upload(imgToBeUploaded.filePath, {
+          resumable: false,
           metadata: {
-            contentType: imgToBeUploaded.mimetype
+            metadata: {
+              contentType: imgToBeUploaded.mimetype
+            }
           }
-        }
-      })
-      // eslint-disable-next-line promise/always-return
-      .then(() => {
-        const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
-        return db.doc(`/users/${req.user.handle}`).update({
-          imgUrl
-        });
-      })
-      .then(() => {
-        return res.json({
-          messgae: "image uploaded succeffully"
-        });
-      })
-      .catch(err => {
-        console.log(err);
-        return res.status(500).json({
-          err: err.code
-        });
-      })
+        })
+        .then(() => {
+          const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
+          return db.doc(`/users/${req.user.handle}`).update({
+            imgUrl
+          });
+        })
+        .then(() => {
+          return res.json({
+            messgae: "image uploaded succeffully"
+          });
+        })
+        .catch(err => {
+          console.log(err);
+          return res.status(500).json({
+            err: err.code
+          });
+        })
     );
   });
   busboy.end(req.rawBody);
@@ -178,37 +166,115 @@ exports.uploadImage = (req, res) => {
 
 exports.addUserDetails = (req, res) => {
   const userDetails = userReducer(req.body);
-  db.doc(`/users/${req.user.handle}`).update(userDetails)
-    .then(() => res.json({
-      message: `user updated successfully`
-    }))
+  db.doc(`/users/${req.user.handle}`)
+    .update(userDetails)
+    .then(() =>
+      res.json({
+        message: `user updated successfully`
+      })
+    )
     .catch(err => {
       return res.status(500).json({
         error: err.code
-      })
-    })
-}
+      });
+    });
+};
 
-exports.getAuthenticatedUser = (req, res)=>{
+exports.getAuthenticatedUser = (req, res) => {
   let userData = {};
-  db.doc(`/users/${req.user.handle}`).get()
-  .then(doc=>{
-    // eslint-disable-next-line promise/always-return
-    if(doc.exists){
-      userData.credentials = doc.data();
-      return db.collection('likes').where('userHandle', '==', req.user.handle).get()
-    }
-  })
-  .then(data =>{
-    userData.likes = [];
-    console.log(data)
-    data.forEach(doc =>{
-      userData.likes.push(doc.data())
+  db.doc(`/users/${req.user.handle}`)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        userData.credentials = doc.data();
+        return db
+          .collection("likes")
+          .where("userHandle", "==", req.user.handle)
+          .get();
+      }
     })
-    return res.json(userData)
-  })
-  .catch(err =>{
-    console.log(err)
-    res.status(500).json({error:err.code})
-  })
-}
+    .then(data => {
+      userData.likes = [];
+      data.forEach(doc => {
+        userData.likes.push(doc.data());
+      });
+      return db
+        .collection("notifications")
+        .where("recipient", "==", req.user.handle)
+        .orderBy("createdAt", "desc")
+        .limit(10)
+        .get();
+    })
+    .then(data => {
+      userData.notifications = [];
+      data.forEach((doc, i) => {
+        userData.notifications.push({
+          recipient: doc.data().recipient,
+          sender: doc.data().sender,
+          type: doc.data().type,
+          screamId: doc.data().screamId,
+          read: doc.data().read,
+          notificationId: doc.id
+        });
+      });
+      return res.json(userData);
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: err.code });
+    });
+};
+//get any user details
+exports.getUserDetails = (req, res) => {
+  let userDetails = {};
+  db.doc(`/users/${req.params.handle}`)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        userDetails = doc.data();
+        console.log(userDetails);
+        return db
+          .collection(`/screams`)
+          .where("userHandle", "==", req.params.handle)
+          .orderBy("createdAt", "desc")
+          .get();
+      } else {
+        return res.status(404).json({ err: "user not found" });
+      }
+    })
+    .then(data => {
+      userDetails.screams = [];
+      data.forEach(doc => {
+        userDetails.screams.push({
+          body: doc.data().body,
+          userHandle: doc.data().userHandle,
+          userImage: doc.data().userImage,
+          likeCount: doc.data().likeCount,
+          commentCount: doc.data().commentCount,
+          createdAt: doc.data().createdAt,
+          screamId: doc.id
+        });
+      });
+      return res.json(userDetails);
+    })
+    .catch(err => {
+      console.log(err), res.status(500).json({ error: err.code });
+    });
+};
+
+exports.markNotificationsRead = (req, res) => {
+  let batch = db.batch();
+  req.body.forEach(notificationId => {
+    const notification = db.doc(`/notifications/${notificationId}`);
+    batch.update(notification, { read: true });
+  });
+  batch
+    .commit()
+    .then(() => {
+      return res.json({ message: "Notifications marked read successfully" });
+    })
+    .catch(err => {
+      console.log(err);
+      res.status(500).json({ error: err.code });
+    });
+};
