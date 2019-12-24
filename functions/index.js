@@ -21,6 +21,11 @@ const {
   markNotificationsRead
 } = require("./handlers/users");
 const FBAuth = require("./util/fbAuth");
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 //Scream Routes
 app.get("/screams", getAllScreams);
