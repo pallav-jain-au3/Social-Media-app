@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const express = require("express");
 const app = express();
+const cors = require("cors");
 const { db } = require("./util/admin");
 
 const {
@@ -26,6 +27,8 @@ app.use((req, res, next) => {
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
+
+app.use(cors());
 
 //Scream Routes
 app.get("/screams", getAllScreams);
