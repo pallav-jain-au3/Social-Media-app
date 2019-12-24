@@ -22,7 +22,6 @@ const {
   markNotificationsRead
 } = require("./handlers/users");
 const FBAuth = require("./util/fbAuth");
-
 app.use(cors());
 
 //Scream Routes
