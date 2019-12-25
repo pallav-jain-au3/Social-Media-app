@@ -1,7 +1,7 @@
 const functions = require("firebase-functions");
 const express = require("express");
 const app = express();
-const cors = require("cors");
+const cors =  require("cors");
 const { db } = require("./util/admin");
 
 const {
@@ -10,7 +10,8 @@ const {
   commentOnScream,
   likeScream,
   unlikeScream,
-  deleteScream
+  deleteScream,
+  getScream
 } = require("./handlers/screams");
 const {
   signup,
@@ -31,6 +32,7 @@ app.delete("/screams/:screamId", FBAuth, deleteScream);
 app.post("/screams/:screamId/comment", FBAuth, commentOnScream);
 app.get("/screams/:screamId/like", FBAuth, likeScream);
 app.get("/screams/:screamId/unlike", FBAuth, unlikeScream);
+app.get('/screams/:screamId', getScream)
 // user routes
 app.post("/signup", signup);
 app.post("/login", login);
@@ -48,10 +50,8 @@ exports.createNotificationOnLike = functions.firestore
       .doc(`/screams/${snapshot.data().screamId}`)
       .get()
       .then(doc => {
-        if (
-          doc.exists &&
-          doc.data().userHandle !== snapshot.data().userHandle
-        ) {
+        // eslint-disable-next-line promise/always-return
+        if (doc.exists &&doc.data().userHandle !== snapshot.data().userHandle) {
           return db.doc(`/notifications/${snapshot.id}`).set({
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
@@ -86,7 +86,9 @@ exports.createNotificationOnComment = functions.firestore
     return db
       .doc(`/screams/${snapshot.data().screamId}`)
       .get()
+      // eslint-disable-next-line consistent-return
       .then(doc => {
+        // eslint-disable-next-line promise/always-return
         if (
           doc.exists &&
           doc.data().userHandle !== snapshot.data().userHandle
