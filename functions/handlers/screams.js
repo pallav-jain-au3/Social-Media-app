@@ -34,6 +34,7 @@ exports.getScream = (req, res) => {
     .then(doc => {
       if (doc.exists) {
         screamData = doc.data();
+        screamData.screamId = doc.id;
         return db
           .collection("comments")
           .orderBy("createdAt", "desc")
