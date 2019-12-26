@@ -55,7 +55,7 @@ exports.getScream = (req, res) => {
 };
 
 exports.postOneScream = (req, res) => {
-  if (req.body.body.trim() == "") {
+  if (req.body.body.trim() === "") {
     return res.status(400).json({
       body: "Must not be empty"
     });
@@ -84,48 +84,37 @@ exports.postOneScream = (req, res) => {
 };
 
 exports.commentOnScream = (req, res) => {
-  if (req.body.body.trim() == "") {
-    return res.status(400).json({
-      comment: "Must not be empty"
-    });
-  }
-  let newComment = {
+  if (req.body.body.trim() === '')
+    return res.status(400).json({ comment: 'Must not be empty' });
+
+  const newComment = {
     body: req.body.body,
+    createdAt: new Date().toISOString(),
     screamId: req.params.screamId,
     userHandle: req.user.handle,
-    imageUrl: req.user.imageUrl,
-    createdAt: new Date().toISOString()
+    userImage: req.user.imageUrl
   };
-  let screamData;
+  console.log(newComment);
 
   db.doc(`/screams/${req.params.screamId}`)
     .get()
-    .then(doc => {
+    .then((doc) => {
       if (!doc.exists) {
-        return res.status(404).json({
-          error: "Not found"
-        });
+        return res.status(404).json({ error: 'Scream not found' });
       }
-      screamData = doc.data();
-      return db.collection("comments").add(newComment);
+      return doc.ref.update({ commentCount: doc.data().commentCount + 1 });
     })
     .then(() => {
-      screamData.commentCount++;
-      db.doc(`/screams/${req.params.screamId}`).update({
-        commentCount: screamData.commentCount
-      });
+      return db.collection('comments').add(newComment);
     })
     .then(() => {
-      res.status(201).json(screamData);
+      res.json(newComment);
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err);
-      res.status(500).json({
-        error: err.code
-      });
+      res.status(500).json({ error: 'Something went wrong' });
     });
 };
-
 exports.likeScream = (req, res) => {
   const likeDocument = db
     .collection("likes")
