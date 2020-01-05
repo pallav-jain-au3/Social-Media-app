@@ -1,6 +1,7 @@
 const functions = require("firebase-functions");
 const express = require("express");
 const app = express();
+const cors =  require("cors");
 const { db } = require("./util/admin");
 
 const {
@@ -9,7 +10,8 @@ const {
   commentOnScream,
   likeScream,
   unlikeScream,
-  deleteScream
+  deleteScream,
+  getScream
 } = require("./handlers/screams");
 const {
   signup,
@@ -21,6 +23,7 @@ const {
   markNotificationsRead
 } = require("./handlers/users");
 const FBAuth = require("./util/fbAuth");
+app.use(cors());
 
 //Scream Routes
 app.get("/screams", getAllScreams);
@@ -29,6 +32,7 @@ app.delete("/screams/:screamId", FBAuth, deleteScream);
 app.post("/screams/:screamId/comment", FBAuth, commentOnScream);
 app.get("/screams/:screamId/like", FBAuth, likeScream);
 app.get("/screams/:screamId/unlike", FBAuth, unlikeScream);
+app.get('/screams/:screamId', getScream)
 // user routes
 app.post("/signup", signup);
 app.post("/login", login);
@@ -42,10 +46,12 @@ exports.api = functions.https.onRequest(app);
 exports.createNotificationOnLike = functions.firestore
   .document("likes/{id}")
   .onCreate(snapshot => {
-    db.doc(`/screams/${snapshot.data().screamId}`)
+    return db
+      .doc(`/screams/${snapshot.data().screamId}`)
       .get()
       .then(doc => {
-        if (doc.exists) {
+        // eslint-disable-next-line promise/always-return
+        if (doc.exists &&doc.data().userHandle !== snapshot.data().userHandle) {
           return db.doc(`/notifications/${snapshot.id}`).set({
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
@@ -56,9 +62,6 @@ exports.createNotificationOnLike = functions.firestore
           });
         }
       })
-      .then(() => {
-        return;
-      })
       .catch(err => {
         console.log(err);
         return;
@@ -68,11 +71,9 @@ exports.createNotificationOnLike = functions.firestore
 exports.deleteNotificationOnUnlike = functions.firestore
   .document("likes/{id}")
   .onDelete(snapshot => {
-    db.doc(`/notifications/${snapshot.id}`)
+    return db
+      .doc(`/notifications/${snapshot.id}`)
       .delete()
-      .then(() => {
-        return;
-      })
       .catch(err => {
         console.log(err);
         return;
@@ -82,10 +83,16 @@ exports.deleteNotificationOnUnlike = functions.firestore
 exports.createNotificationOnComment = functions.firestore
   .document("comments/{id}")
   .onCreate(snapshot => {
-    db.doc(`/screams/${snapshot.data().screamId}`)
+    return db
+      .doc(`/screams/${snapshot.data().screamId}`)
       .get()
+      // eslint-disable-next-line consistent-return
       .then(doc => {
-        if (doc.exists) {
+        // eslint-disable-next-line promise/always-return
+        if (
+          doc.exists &&
+          doc.data().userHandle !== snapshot.data().userHandle
+        ) {
           return db.doc(`/notifications/${snapshot.id}`).set({
             createdAt: new Date().toISOString(),
             recipient: doc.data().userHandle,
@@ -96,11 +103,72 @@ exports.createNotificationOnComment = functions.firestore
           });
         }
       })
-      .then(() => {
-        return;
-      })
       .catch(err => {
         console.log(err);
         return;
+      });
+  });
+
+exports.onUserImageChange = functions.firestore
+  .document("users/{id}")
+  .onUpdate(change => {
+    console.log("change before", change.before.data());
+    console.log("change after", change.after.data());
+    if (change.before.data().imgUrl !== change.after.data().imgUrl) {
+      console.log("image changed");
+      let batch = db.batch();
+      return db
+        .collection("/screams")
+        .where("userHandle", "==", change.before.data().handle)
+        .get()
+        .then(data => {
+          data.forEach(doc => {
+            const scream = db.doc(`/screams/${doc.id}`);
+            batch.update(scream, {
+              userImage: change.after.data().imgUrl
+            });
+          });
+          return batch.commit();
+        });
+    } else {
+      return true;
+    }
+  });
+
+exports.onScreamDeleted = functions.firestore
+  .document("/screams/{screamId}")
+  .onDelete((snapshot, context) => {
+    let screamId = context.params.screamId;
+    const batch = db.batch();
+    return db
+      .collection("comments")
+      .where("screamId", "==", screamId)
+      .get()
+      .then(data => {
+        data.forEach(doc => {
+          batch.delete(db.doc(`/comments/${doc.id}`));
+        });
+        return db
+          .collection("likes")
+          .where("screamId", "==", screamId)
+          .get();
+      })
+      .then(data => {
+        data.forEach(doc => {
+          batch.delete(db.doc(`/likes/${doc.id}`));
+        });
+        return db
+          .collection("notifications")
+          .where("screamId", "==", screamId)
+          .get();
+      })
+      .then(data => {
+        data.forEach(doc => {
+          batch.delete(db.doc(`/notificataions/${doc.id}`));
+        });
+        return batch.commit();
+      })
+      .catch(err => {
+        console.log(err);
       });
   });

@@ -66,7 +66,7 @@ exports.signup = (req, res) => {
               });
             } else {
               return res.status(500).json({
-                err: err.code
+                general: "Something went wrong , Please try it again"
               });
             }
           });
@@ -96,15 +96,9 @@ exports.login = (req, res) => {
       });
     })
     .catch(err => {
-      if (err.code === "auth/wrong-password") {
-        return res.status(403).json({
-          error: "Wrong password . Please try again"
-        });
-      } else {
-        return res.status(500).json({
-          error: err.code
-        });
-      }
+      return res.status(403).json({
+        general: "Wrong credentials , Please try it again"
+      });
     });
 };
 
@@ -130,36 +124,34 @@ exports.uploadImage = (req, res) => {
     file.pipe(fs.createWriteStream(filePath));
   });
   busboy.on("finish", () => {
-    return (
-      admin
-        .storage()
-        .bucket()
-        .upload(imgToBeUploaded.filePath, {
-          resumable: false,
+    return admin
+      .storage()
+      .bucket()
+      .upload(imgToBeUploaded.filePath, {
+        resumable: false,
+        metadata: {
           metadata: {
-            metadata: {
-              contentType: imgToBeUploaded.mimetype
-            }
+            contentType: imgToBeUploaded.mimetype
           }
-        })
-        .then(() => {
-          const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
-          return db.doc(`/users/${req.user.handle}`).update({
-            imgUrl
-          });
-        })
-        .then(() => {
-          return res.json({
-            messgae: "image uploaded succeffully"
-          });
-        })
-        .catch(err => {
-          console.log(err);
-          return res.status(500).json({
-            err: err.code
-          });
-        })
-    );
+        }
+      })
+      .then(() => {
+        const imgUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imgFileName}?alt=media`;
+        return db.doc(`/users/${req.user.handle}`).update({
+          imgUrl
+        });
+      })
+      .then(() => {
+        return res.json({
+          messgae: "image uploaded succeffully"
+        });
+      })
+      .catch(err => {
+        console.log(err);
+        return res.status(500).json({
+          err: err.code
+        });
+      });
   });
   busboy.end(req.rawBody);
 };
@@ -214,7 +206,8 @@ exports.getAuthenticatedUser = (req, res) => {
           type: doc.data().type,
           screamId: doc.data().screamId,
           read: doc.data().read,
-          notificationId: doc.id
+          notificationId: doc.id,
+          createdAt : doc.data().createdAt 
         });
       });
       return res.json(userData);
