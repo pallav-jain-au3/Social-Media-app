@@ -23,7 +23,6 @@ exports.signup = (req, res) => {
 
   let token, userId;
   let noImg = "no-face-img.webp";
-  // eslint-disable-next-line promise/catch-or-return
   db.doc(`/users/${newUser.handle}`)
     .get()
     .then(doc => {
@@ -32,7 +31,6 @@ exports.signup = (req, res) => {
           handle: "This handle is already taken"
         });
       } else {
-        // eslint-disable-next-line promise/no-nesting
         return firebase
           .auth()
           .createUserWithEmailAndPassword(newUser.email, newUser.password)
@@ -95,7 +93,7 @@ exports.login = (req, res) => {
         token
       });
     })
-    .catch(err => {
+    .catch(() => {
       return res.status(403).json({
         general: "Wrong credentials , Please try it again"
       });
