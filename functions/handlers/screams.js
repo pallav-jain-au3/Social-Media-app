@@ -41,7 +41,7 @@ exports.getScream = (req, res) => {
           .where("screamId", "==", req.params.screamId)
           .get();
       } else {
-        res.status(404).json({ error: "Not Found" });
+        return res.status(404).json({ error: "Not Found" });
       }
     })
     .then(data => {
@@ -49,7 +49,7 @@ exports.getScream = (req, res) => {
       data.forEach(doc => {
         screamData.comments.push(doc.data());
       });
-      res.json(screamData);
+      return res.json(screamData);
     })
     .catch(err => res.status(500).json({ error: err.code }));
 };
@@ -73,19 +73,19 @@ exports.postOneScream = (req, res) => {
     .then(doc => {
       const resScream = newScream;
       resScream.screamId = doc.id;
-      res.json(resScream);
+      return res.json(resScream);
     })
     .catch(err => {
       res.status(500).json({
         err: "something went wrong"
       });
-      console.log(err);
+      console.error(err);
     });
 };
 
 exports.commentOnScream = (req, res) => {
-  if (req.body.body.trim() === '')
-    return res.status(400).json({ comment: 'Must not be empty' });
+  if (req.body.body.trim() === "")
+    return res.status(400).json({ comment: "Must not be empty" });
 
   const newComment = {
     body: req.body.body,
@@ -94,25 +94,22 @@ exports.commentOnScream = (req, res) => {
     userHandle: req.user.handle,
     userImage: req.user.imageUrl
   };
-  console.log(newComment);
 
   db.doc(`/screams/${req.params.screamId}`)
     .get()
-    .then((doc) => {
+    .then(doc => {
       if (!doc.exists) {
-        return res.status(404).json({ error: 'Scream not found' });
+        return res.status(404).json({ error: "Scream not found" });
       }
       return doc.ref.update({ commentCount: doc.data().commentCount + 1 });
     })
     .then(() => {
-      return db.collection('comments').add(newComment);
+      return db.collection("comments").add(newComment);
     })
-    .then(() => {
-      res.json(newComment);
-    })
-    .catch((err) => {
+    .then(() => res.json(newComment))
+    .catch(err => {
       console.log(err);
-      res.status(500).json({ error: 'Something went wrong' });
+      res.status(500).json({ error: "Something went wrong" });
     });
 };
 exports.likeScream = (req, res) => {
@@ -152,7 +149,7 @@ exports.likeScream = (req, res) => {
           })
           .then(() => res.json(screamData));
       } else {
-        res.status(400).json({
+        return res.status(400).json({
           error: "Scream already liked"
         });
       }
@@ -225,7 +222,7 @@ exports.deleteScream = (req, res) => {
       if (doc.data().userHandle !== req.user.handle) {
         return res.status(403).json({ error: "Unauthorised request" });
       } else {
-        document.delete();
+        return document.delete();
       }
     })
     .then(() => {
